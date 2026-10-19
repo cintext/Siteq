@@ -1,0 +1,4 @@
+{$SITEQ_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy siteq:8765
+}

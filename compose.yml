@@ -1,0 +1,43 @@
+services:
+  siteq:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SITEQ_HOST: 0.0.0.0
+      SITEQ_PORT: 8765
+      SITEQ_DATABASE: /data/siteq.sqlite3
+      SITEQ_COOKIE_SECURE: "1"
+      SITEQ_TRUST_PROXY: "1"
+    volumes:
+      - siteq_data:/data
+    expose:
+      - "8765"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SITEQ_DOMAIN: ${SITEQ_DOMAIN:?Set SITEQ_DOMAIN in .env}
+    depends_on:
+      siteq:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  siteq_data:
+  caddy_data:
+  caddy_config:
